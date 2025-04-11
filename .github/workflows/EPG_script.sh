@@ -1,88 +1,83 @@
 #!/bin/bash
 
 # Limpieza inicial
-sed -i '/^ *$/d' epgs.txt
-sed -i '/^ *$/d' canales.txt
-rm -f EPG_temp*
+sed -i '/^ *$/d' epgs.txt 2>/dev/null
+sed -i '/^ *$/d' canales.txt 2>/dev/null
+rm -f EPG_temp* miEPG.xml 2>/dev/null
 
-# Descarga y combinación de EPGs
-while IFS=, read -r epg
-do
-    extension="${epg##*.}"
-    if [ "$extension" = "gz" ]; then
-        echo "Descargando y descomprimiendo EPG: $epg"
-        wget -O EPG_temp00.xml.gz -q "$epg"
-        gzip -d -f EPG_temp00.xml.gz
-    else
-        echo "Descargando EPG: $epg"
-        wget -O EPG_temp00.xml -q "$epg"
-    fi
-    cat EPG_temp00.xml >> EPG_temp.xml
-    sed -i 's/></>\n</g' EPG_temp.xml
+# Descarga EPGs
+echo "=== Descargando fuentes EPG ==="
+while IFS=, read -r epg; do
+  [[ -z "$epg" ]] && continue
+  
+  if [[ "$epg" == *.gz ]]; then
+    echo "Descargando y descomprimiendo: $epg"
+    wget -q -O EPG_temp.gz "$epg" && gzip -df EPG_temp.gz
+    mv EPG_temp EPG_temp00.xml 2>/dev/null
+  else
+    echo "Descargando: $epg"
+    wget -q -O EPG_temp00.xml "$epg"
+  fi
+  
+  [ -f "EPG_temp00.xml" ] && {
+    sed 's/></>\n</g' EPG_temp00.xml >> EPG_temp.xml
+    rm -f EPG_temp00.xml
+  }
 done < epgs.txt
 
-# Procesamiento de canales (modificación de los listados en canales.txt)
-while IFS=, read -r old new logo
-do
-    contar_channel="$(grep -c "channel=\"$old\"" EPG_temp.xml)"
-    if [ "$contar_channel" -gt 1 ]; then
-        sed -n "/<channel id=\"${old}\">/,/<\/channel>/p" EPG_temp.xml > EPG_temp01.xml
-        sed -i '/<icon src/!d' EPG_temp01.xml
-        if [ -n "$logo" ]; then
-            echo "Nombre EPG: $old · Nuevo nombre: $new · Cambiando logo ··· $contar_channel coincidencias"
-            echo '  </channel>' >> EPG_temp01.xml
-            sed -i "1i\  <channel id=\"${new}\">" EPG_temp01.xml
-            sed -i "2i\    <display-name>${new}</display-name>" EPG_temp01.xml
-            sed -i "s#<icon src=.*#<icon src=\"${logo}\" />#" EPG_temp01.xml
-            sed -i "3i\    <icon src=\"${logo}\" />" EPG_temp01.xml
-        else
-            echo "Nombre EPG: $old · Nuevo nombre: $new · Manteniendo logo ··· $contar_channel coincidencias"
-            echo '  </channel>' >> EPG_temp01.xml
-            sed -i "1i\  <channel id=\"${new}\">" EPG_temp01.xml
-            sed -i "2i\    <display-name>${new}</display-name>" EPG_temp01.xml
-        fi
-        cat EPG_temp01.xml >> EPG_temp1.xml
-        sed -i '$!N;/^\(.*\)\n\1$/!P;D' EPG_temp1.xml
-
-        sed -n "/<programme.*\"${old}\"/,/<\/programme>/p" EPG_temp.xml > EPG_temp02.xml
-        sed -i '/<programme/s/\">.*/\"/g' EPG_temp02.xml
-        sed -i "s# channel=\"${old}\"##g" EPG_temp02.xml
-        sed -i "/<programme/a EPG_temp channel=\"${new}\">" EPG_temp02.xml
-        sed -i ':a;N;$!ba;s/\nEPG_temp//g' EPG_temp02.xml
-        cat EPG_temp02.xml >> EPG_temp2.xml
-    else
-        echo "Saltando canal: $old ··· $contar_channel coincidencias"
-    fi
+# Procesar canales
+echo -e "\n=== Procesando canales ==="
+[ -f "canales.txt" ] && while IFS=, read -r old new logo; do
+  [[ -z "$old" ]] && continue
+  
+  if grep -q "channel=\"$old\"" EPG_temp.xml; then
+    # Extraer canal
+    sed -n "/<channel id=\"${old}\">/,/<\/channel>/p" EPG_temp.xml > EPG_temp1.xml
+    
+    # Modificar canal
+    echo "Procesando: $old → $new"
+    sed -i "s|<channel id=\"${old}\">|<channel id=\"${new}\">|g" EPG_temp1.xml
+    sed -i "s|<display-name>${old}</display-name>|<display-name>${new}</display-name>|g" EPG_temp1.xml
+    [ -n "$logo" ] && sed -i "s|<icon src=\".*\"|<icon src=\"${logo}\"|g" EPG_temp1.xml
+    
+    # Extraer programas
+    sed -n "/<programme.*channel=\"${old}\".*/,/<\/programme>/p" EPG_temp.xml | \
+      sed "s/channel=\"${old}\"/channel=\"${new}\"/g" >> EPG_temp2.xml
+  else
+    echo "Canal no encontrado: $old"
+  fi
 done < canales.txt
 
-# Incluir canales NO modificados (los que no están en canales.txt)
-grep -Pzo '<channel id="[^"]+">.*?\n<\/channel>' EPG_temp.xml | while read -r line; do
+# Incluir canales no modificados
+echo -e "\n=== Incluyendo canales no modificados ==="
+grep -Pzo '<channel id="[^"]+">.*?</channel>' EPG_temp.xml | \
+  while IFS= read -r line; do
     channel_id=$(echo "$line" | grep -oP 'channel id="\K[^"]+')
-    if ! grep -q "$channel_id" canales.txt; then
-        echo "$line" >> EPG_temp3.xml
+    if ! grep -q "^$channel_id," canales.txt 2>/dev/null; then
+      echo "$line" >> EPG_temp3.xml
+      # Extraer sus programas
+      sed -n "/<programme.*channel=\"${channel_id}\".*/,/<\/programme>/p" EPG_temp.xml >> EPG_temp4.xml
     fi
-done
-
-# Incluir programas de canales NO modificados
-grep -Pzo '<programme[^>]+channel="[^"]+">.*?\n<\/programme>' EPG_temp.xml | while read -r line; do
-    channel_id=$(echo "$line" | grep -oP 'channel="\K[^"]+')
-    if ! grep -q "$channel_id" canales.txt; then
-        echo "$line" >> EPG_temp4.xml
-    fi
-done
+  done
 
 # Generar EPG final
-date_stamp=$(date +"%d/%m/%Y %R")
+echo -e "\n=== Generando miEPG.xml ==="
 echo '<?xml version="1.0" encoding="UTF-8"?>' > miEPG.xml
-echo "<tv generator-info-name=\"miEPG $date_stamp\" generator-info-url=\"https://github.com/davidmuma/miEPG\">" >> miEPG.xml
-cat EPG_temp1.xml >> miEPG.xml  # Canales modificados
-cat EPG_temp3.xml >> miEPG.xml  # Canales NO modificados
-cat EPG_temp2.xml >> miEPG.xml  # Programas modificados
-cat EPG_temp4.xml >> miEPG.xml  # Programas NO modificados
+echo "<tv generator-info-name=\"miEPG $(date +'%d/%m/%Y %R')\">" >> miEPG.xml
+
+# Ordenar canales por nombre
+for f in EPG_temp1.xml EPG_temp3.xml; do
+  [ -f "$f" ] && sort -t'>' -k2,2 -u "$f" >> miEPG.xml
+done
+
+# Combinar programas y eliminar offsets horarios
+for f in EPG_temp2.xml EPG_temp4.xml; do
+  [ -f "$f" ] && sed -E 's/(start|stop)="([^"]+)[+-][0-9]{4}"/\1="\2"/g' "$f" >> miEPG.xml
+done
+
 echo '</tv>' >> miEPG.xml
 
-# Eliminar offsets horarios (+0200, etc.)
-sed -i -E 's/(start|stop)="([^"]+)[+-][0-9]{4}"/\1="\2"/g' miEPG.xml
-
-# Limpieza final
+# Limpieza
 rm -f EPG_temp*
+echo -e "\n=== Proceso completado ==="
+echo "EPG generado en: miEPG.xml ($(du -h miEPG.xml | cut -f1))"
