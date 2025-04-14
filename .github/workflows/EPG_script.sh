@@ -55,15 +55,10 @@ while IFS=, read -r old new logo; do
   fi
 done < canales.txt
 
-# Generar EPG final
-echo -e "\n=== Generando miEPG.xml ==="
+# Genera miEPG.xml con todo el contenido del EPG descargado
 echo '<?xml version="1.0" encoding="UTF-8"?>' > miEPG.xml
 echo "<tv generator-info-name=\"miEPG $(date +'%d/%m/%Y %H:%M')\">" >> miEPG.xml
-
-# Añadir contenido (si existe)
-[ -f "EPG_temp_channel.xml" ] && cat EPG_temp_channel.xml >> miEPG.xml
-[ -f "EPG_temp_programs.xml" ] && sed -E 's/(start|stop)="([^"]+)[+-][0-9]{4}"/\1="\2"/g' EPG_temp_programs.xml >> miEPG.xml
-
+grep -E '<channel|<programme' EPG_temp.xml >> miEPG.xml
 echo '</tv>' >> miEPG.xml
 
 # Verificar resultado
