@@ -21,7 +21,7 @@ echo "<tv generator-info-name=\"miEPG $(date +'%d/%m/%Y %H:%M')\">" >> miEPG.xml
 
 # 7. Añadir canales y programación (eliminando offsets horarios)
 cat EPG_channels.xml >> miEPG.xml
-sed -E 's/(start|stop)="([^"]+)([+-][0-9]{4})"/\1="\2+0000"/g'
+sed -E 's/(start|stop)="([^"]+)\s*[+-][0-9]{4}"/\1="\2 +0000"/g' EPG_programs.xml >> miEPG.xml
 
 echo '</tv>' >> miEPG.xml
 
