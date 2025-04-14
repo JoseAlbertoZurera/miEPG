@@ -19,7 +19,7 @@ sed -n '/<programme /,/<\/programme>/p' EPG_temp.xml > EPG_programs.xml
 echo '<?xml version="1.0" encoding="UTF-8"?>' > miEPG.xml
 echo "<tv generator-info-name=\"miEPG $(date +'%d/%m/%Y %H:%M')\">" >> miEPG.xml
 
-# 7. Añadir canales y programación (eliminando offsets horarios)
+# 7. Añadir canales y programación (modificando offsets horarios)
 cat EPG_channels.xml >> miEPG.xml
 sed -E 's/(start|stop)="([0-9]{14})[[:space:]]*[+-][0-9]{4}"/\1="\2 -0200"/g' EPG_programs.xml >> miEPG.xml
 
