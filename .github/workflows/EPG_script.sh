@@ -3,8 +3,9 @@
 # 1. Limpieza inicial
 rm -f EPG_temp* miEPG.xml 2>/dev/null
 
-# 2. Descargar EPG (ejemplo con tu URL)
-wget -q -O EPG_temp.xml "hhttps://raw.githubusercontent.com/davidmuma/EPG_dobleM/master/guiafanart_sincolor1.xml.gz"
+# 2. Descargar y descomprimir EPG (.gz)
+wget -q -O EPG_temp.xml.gz "https://raw.githubusercontent.com/davidmuma/EPG_dobleM/master/guiafanart_sincolor1.xml.gz"
+gunzip -f EPG_temp.xml.gz
 
 # 3. Formatear XML (un tag por línea)
 sed -i 's/></>\n</g' EPG_temp.xml
