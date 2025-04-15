@@ -2121,17 +2121,6 @@
     <display-name lang="es">DAZN 1 BAR 1080</display-name>
     <icon src="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/DAZN%201%20BAR.png" />
   </channel>
-  <channel id="DAZN 2 BAR">
-    <display-name lang="es">DAZN 2 BAR</display-name>
-    <display-name lang="es">DAZN 2 BAR.TV</display-name>
-    <display-name lang="es">DAZN 2 BAR SD</display-name>
-    <display-name lang="es">DAZN 2 BAR HD</display-name>
-    <display-name lang="es">DAZN 2 BAR FHD</display-name>
-    <display-name lang="es">DAZN 2 BAR UHD</display-name>
-    <display-name lang="es">DAZN 2 BAR 720</display-name>
-    <display-name lang="es">DAZN 2 BAR 1080</display-name>
-    <icon src="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/DAZN%202%20BAR.png" />
-  </channel>
   <channel id="GolStadium">
     <display-name lang="es">GolStadium</display-name>
     <display-name lang="es">GolStadium.TV</display-name>
@@ -2164,6 +2153,17 @@
     <display-name lang="es">GolStadium 3 720</display-name>
     <display-name lang="es">GolStadium 3 1080</display-name>
     <icon src="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/GolStadium%203.png" />
+  </channel>
+  <channel id="GolStadium 4">
+    <display-name lang="es">GolStadium 4</display-name>
+    <display-name lang="es">GolStadium 4.TV</display-name>
+    <display-name lang="es">GolStadium 4 SD</display-name>
+    <display-name lang="es">GolStadium 4 HD</display-name>
+    <display-name lang="es">GolStadium 4 FHD</display-name>
+    <display-name lang="es">GolStadium 4 UHD</display-name>
+    <display-name lang="es">GolStadium 4 720</display-name>
+    <display-name lang="es">GolStadium 4 1080</display-name>
+    <icon src="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/GolStadium%204.png" />
   </channel>
   <channel id="Torolé TV">
     <display-name lang="es">Torolé TV</display-name>
